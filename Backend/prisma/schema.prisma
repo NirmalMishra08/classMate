@@ -38,3 +38,4 @@ model Attendance {
   schedule   Schedule @relation(fields: [scheduleId], references: [id])
   user       User     @relation(fields: [userId], references: [id])
 }
+
