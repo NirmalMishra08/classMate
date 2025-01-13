@@ -71,7 +71,16 @@ app.post("/api/v1/login", (req, res) => __awaiter(void 0, void 0, void 0, functi
         }
         const token = jsonwebtoken_1.default.sign({ userId: user.id }, process.env.JWT_SECRET, { expiresIn: "1h" });
         console.log(process.env.JWT_SECRET);
-        return res.status(200).json({ message: "Login Successfully", token: token });
+        const name = yield client.user.findUnique({
+            where: {
+                email: email
+            },
+            select: {
+                name: true,
+            }
+        });
+        const realname = name === null || name === void 0 ? void 0 : name.name;
+        return res.status(200).json({ message: "Login Successfully", token: token, realname });
     }
     catch (error) {
         return res.status(500).json({ message: "error occurred while" + (error).message });
@@ -189,6 +198,7 @@ app.post("/api/v1/deleteScheduleforSubject", middlware_1.authenticatedUser, (req
         return res.status(404).json({ message: "Error occurred while :" + (error).message });
     }
 }));
+// Marking attendance
 // @ts-ignore
 app.post("/api/v1/markAttendance", middlware_1.authenticatedUser, (req, res) => __awaiter(void 0, void 0, void 0, function* () {
     var _a;
@@ -243,6 +253,7 @@ app.post("/api/v1/markAttendance", middlware_1.authenticatedUser, (req, res) => 
         return res.status(404).json({ message: "Error occurred while :" + (err).message });
     }
 }));
+// getting attendance of that day
 // @ts-ignore
 app.get('/api/v1/getAttendance', middlware_1.authenticatedUser, (req, res) => __awaiter(void 0, void 0, void 0, function* () {
     var _a;
@@ -273,6 +284,58 @@ app.get('/api/v1/getAttendance', middlware_1.authenticatedUser, (req, res) => __
     }
     catch (err) {
         return res.status(404).json({ message: "Error occurred while :" + (err).message });
+    }
+}));
+// update attendance
+// @ts-ignore
+app.post("/api/v1/updateAttendance", middlware_1.authenticatedUser, (req, res) => __awaiter(void 0, void 0, void 0, function* () {
+    var _a;
+    const userId = (_a = req.user) === null || _a === void 0 ? void 0 : _a.id;
+    try {
+        if (!userId) {
+            throw new Error("User ID is required");
+        }
+        const { attendanceId, date, status } = req.body;
+        if (!attendanceId || !date || typeof status != "boolean") {
+            return res.status(404).json({ message: "All fields are required." });
+        }
+        const updateAttendance = yield client.attendance.update({
+            where: {
+                id: attendanceId
+            },
+            data: Object.assign(Object.assign({}, (date && { date: new Date(date) })), (status !== undefined && { status }))
+        });
+        if (!updateAttendance) {
+            return res.status(404).json({ message: "Attendance not found." });
+        }
+        return res.status(200).json({ message: "Attendance updated successfully", updatedAttendance: updateAttendance });
+    }
+    catch (error) {
+        return res.status(404).json({ message: "an error occurred while updating" + error });
+    }
+}));
+// @ts-ignore
+app.post("/api/v1/attendanceSummary", middlware_1.authenticatedUser, (req, res) => __awaiter(void 0, void 0, void 0, function* () {
+    var _a;
+    const userId = (_a = req.user) === null || _a === void 0 ? void 0 : _a.id;
+    try {
+        const attendance = yield client.attendance.findMany({
+            where: {
+                userId: userId
+            }
+        });
+        const totalClass = attendance.length;
+        const attendedClass = attendance.filter(a => a.status).length;
+        const attendedClassPercentage = (attendedClass / totalClass) * 100;
+        res.status(200).json({
+            message: "Attendance summary fetched successfully",
+            totalClass,
+            attendedClass,
+            attendedClassPercentage: attendedClassPercentage.toFixed(2),
+        });
+    }
+    catch (error) {
+        return res.status(404).json({ message: { error: (error).message } });
     }
 }));
 console.log("hello");

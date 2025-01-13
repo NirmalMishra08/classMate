@@ -4,6 +4,7 @@ import cors from 'cors'
 import bcrypt from "bcrypt"
 import jwt from "jsonwebtoken";
 import { authenticatedUser } from "./middlware";
+import { sendEmail } from "./mail";
 
 
 
@@ -33,7 +34,6 @@ app.use(cors(corsOptions))
 const client = new PrismaClient();
 
 
-
 app.post('/api/v1/register', async (req, res) => {
 
     const name = req.body.name;
@@ -52,6 +52,8 @@ app.post('/api/v1/register', async (req, res) => {
             }
         });
         console.log("user created" + name)
+
+       
 
         res.status(201).json({
             messsage: "User registered Successfully",
@@ -92,7 +94,9 @@ app.post("/api/v1/login", async (req: Request, res: Response) => {
         const token = jwt.sign({ userId: user.id }, process.env.JWT_SECRET as string, { expiresIn: "1h" });
         console.log(process.env.JWT_SECRET)
 
-        return res.status(200).json({ message: "Login Successfully", token: token })
+       
+
+        return res.status(200).json({ message: "Login Successfully", token: token,realname })
 
 
 
@@ -119,7 +123,7 @@ app.post('/api/v1/schedules', authenticatedUser, async (req: Request, res: Respo
             }
         })
 
-        return res.status(201).json({ message: "Schedule created Successfully", schedule: schedule })
+        return res.status(201).json({ message: "Schedule created Successfully", schedule: schedule , success:true })
 
 
 
@@ -227,7 +231,7 @@ app.post("/api/v1/deleteScheduleforSubject", authenticatedUser, async (req, res)
         return res.status(404).json({ message: "Error occurred while :" + ((error) as Error).message })
     }
 })
-
+  // Marking attendance
 // @ts-ignore
 app.post("/api/v1/markAttendance", authenticatedUser, async (req, res) => {
     try {
@@ -291,6 +295,8 @@ app.post("/api/v1/markAttendance", authenticatedUser, async (req, res) => {
         return res.status(404).json({ message: "Error occurred while :" + ((err) as Error).message })
     }
 })
+
+// getting attendance of that day
 // @ts-ignore
 app.get('/api/v1/getAttendance', authenticatedUser, async (req, res) => {
     try {
@@ -324,6 +330,68 @@ app.get('/api/v1/getAttendance', authenticatedUser, async (req, res) => {
     }catch(err){
         return res.status(404).json({ message: "Error occurred while :" + ((err) as Error).message })
     }
+})
+
+// update attendance
+// @ts-ignore
+app.post("/api/v1/updateAttendance",authenticatedUser,async(req,res)=>{
+   const userId = req.user?.id;
+
+   try {
+    
+   if(!userId){
+    throw new Error("User ID is required");
+}
+const { attendanceId, date, status } = req.body;
+if(!attendanceId ||!date || typeof status!= "boolean"){
+    return res.status(404).json({ message: "All fields are required." });
+}
+const updateAttendance = await client.attendance.update({
+  where:{
+      id:attendanceId
+  },
+  data:{
+      ...(date &&{ date : new Date(date)}),
+      ...(status!==undefined && {status})
+  }
+
+})
+if(!updateAttendance){
+    return res.status(404).json({ message: "Attendance not found." });
+}
+
+return res.status(200).json({ message: "Attendance updated successfully", updatedAttendance: updateAttendance })
+
+   } catch (error) {
+    return res.status(404).json({ message:"an error occurred while updating" + error})
+   }
+
+})
+
+// @ts-ignore
+
+app.post("/api/v1/attendanceSummary",authenticatedUser,async(req,res)=>{
+    const userId = req.user?.id;
+    try {
+        const attendance  = await client.attendance.findMany({
+            where:{
+                userId:userId
+            }
+        })
+    
+        const totalClass = attendance.length;
+        const attendedClass = attendance.filter(a=>a.status).length;
+        const attendedClassPercentage = (attendedClass/totalClass)*100;
+        res.status(200).json({
+            message: "Attendance summary fetched successfully",
+            totalClass,
+            attendedClass,
+            attendedClassPercentage: attendedClassPercentage.toFixed(2),
+        });
+    } catch (error) {
+        return res.status(404).json({message:{error:((error) as Error).message}})
+    }
+    
 })
 
 
