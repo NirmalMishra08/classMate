@@ -71,16 +71,7 @@ app.post("/api/v1/login", (req, res) => __awaiter(void 0, void 0, void 0, functi
         }
         const token = jsonwebtoken_1.default.sign({ userId: user.id }, process.env.JWT_SECRET, { expiresIn: "1h" });
         console.log(process.env.JWT_SECRET);
-        const name = yield client.user.findUnique({
-            where: {
-                email: email
-            },
-            select: {
-                name: true,
-            }
-        });
-        const realname = name === null || name === void 0 ? void 0 : name.name;
-        return res.status(200).json({ message: "Login Successfully", token: token, realname });
+        return res.status(200).json({ message: "Login Successfully", token: token });
     }
     catch (error) {
         return res.status(500).json({ message: "error occurred while" + (error).message });
@@ -100,7 +91,7 @@ app.post('/api/v1/schedules', middlware_1.authenticatedUser, (req, res) => __awa
                 userId: userId
             }
         });
-        return res.status(201).json({ message: "Schedule created Successfully", schedule: schedule });
+        return res.status(201).json({ message: "Schedule created Successfully", schedule: schedule, success: true });
     }
     catch (error) {
         return res.status(500).json({ message: "error occurred while creating schedule" + (error).message });
