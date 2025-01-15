@@ -5,7 +5,7 @@ const H = () => {
   return (
     <div className='flex flex-row text-white'>
         <div className=' w-1/5 h-screen'>
-           <LeftSideBar/> 
+           <LeftSideBar onClick={onClick}/> 
         </div>
         
     </div>
