@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import  { useState } from 'react';
 
 function MarkAttendance() {
   const [attendance, setAttendance] = useState({
@@ -7,7 +7,7 @@ function MarkAttendance() {
     status: '',
   });
 
-  const handleInputChange = (e) => {
+  const handleInputChange = (e:any) => {
     const { name, value } = e.target;
     setAttendance((prev) => ({
       ...prev,
@@ -15,7 +15,7 @@ function MarkAttendance() {
     }));
   };
 
-  const handleSubmit = (e) => {
+  const handleSubmit = (e:any) => {
     e.preventDefault();
 
     // Add your backend API call here
