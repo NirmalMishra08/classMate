@@ -1,6 +1,6 @@
 import React from 'react'
 
-const LeftSideBar = ({onClick}) => {
+ const LeftSideBar = ({onClick}:{onClick:()=>void}) => {
     return (
         <div className='w-full h-full text-white'>
 
@@ -27,7 +27,7 @@ const LeftSideBar = ({onClick}) => {
                             Attendance Summary
                         </div>
                     </div>
-                    <div className='flex justify-center p-5 hover:bg-gray-400  m-3 rounded-full '>
+                    <div onClick={onClick} className='flex justify-center p-5 hover:bg-gray-400  m-3 rounded-full '>
                         Logout
                     </div>
 
@@ -43,3 +43,4 @@ const LeftSideBar = ({onClick}) => {
 }
 
 export default LeftSideBar
+

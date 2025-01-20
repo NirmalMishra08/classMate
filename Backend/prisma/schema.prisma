@@ -23,6 +23,7 @@ model Schedule {
   subject     String
   day         String
   time        String
+  isRecurring  Boolean    @default(false)
   createdAt   DateTime     @default(now())
   attendances Attendance[]
   user        User         @relation(fields: [userId], references: [id])
