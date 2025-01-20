@@ -53,7 +53,7 @@ app.post('/api/v1/register', async (req, res) => {
         });
         console.log("user created" + name)
 
-       
+
 
         res.status(201).json({
             messsage: "User registered Successfully",
@@ -94,7 +94,7 @@ app.post("/api/v1/login", async (req: Request, res: Response) => {
         const token = jwt.sign({ userId: user.id }, process.env.JWT_SECRET as string, { expiresIn: "1h" });
         console.log(process.env.JWT_SECRET)
 
-       
+
 
         return res.status(200).json({ message: "Login Successfully", token: token })
 
@@ -123,7 +123,7 @@ app.post('/api/v1/schedules', authenticatedUser, async (req: Request, res: Respo
             }
         })
 
-        return res.status(201).json({ message: "Schedule created Successfully", schedule: schedule , success:true })
+        return res.status(201).json({ message: "Schedule created Successfully", schedule: schedule, success: true })
 
 
 
@@ -149,7 +149,7 @@ app.get("/api/v1/userInfo", authenticatedUser, async (req, res) => {
             }
         })
 
-        return res.status(200).json({ message: "User information", user: user })
+        return res.status(200).json({ message: "User information", user: user, success: true })
 
     } catch (err) {
         return res.status(404).json({ message: "error occurred while getting user information" + ((err) as Error).message })
@@ -164,10 +164,23 @@ app.get("/api/v1/scheduleInfo", authenticatedUser, async (req, res) => {
 
     try {
         const userId = req.user?.id;
+        const { day, subject } = req.query;
+        const filter : any = {
+            userId,
+            
+        }
+
+        if (day) {
+            filter.day = day
+        }
+        if (subject) {
+            filter.subject = {
+                contains: subject, // Case-insensitive search for partial matches
+                mode: "insensitive",
+            };
+        }
         const schedules = await client.schedule.findMany({
-            where: {
-                userId: userId
-            },
+            where: filter,
             select: {
                 id: true,
                 subject: true,
@@ -231,7 +244,7 @@ app.post("/api/v1/deleteScheduleforSubject", authenticatedUser, async (req, res)
         return res.status(404).json({ message: "Error occurred while :" + ((error) as Error).message })
     }
 })
-  // Marking attendance
+// Marking attendance
 // @ts-ignore
 app.post("/api/v1/markAttendance", authenticatedUser, async (req, res) => {
     try {
@@ -308,80 +321,80 @@ app.get('/api/v1/getAttendance', authenticatedUser, async (req, res) => {
         if (!scheduleId) {
             return res.status(404).json({ message: "All fields are required." });
         }
-        const filter :any = {
-            userId:userId
+        const filter: any = {
+            userId: userId
         }
         //adding new object to filter
-        if(scheduleId){
-           filter.scheduleId = parseInt(scheduleId as string,10)
+        if (scheduleId) {
+            filter.scheduleId = parseInt(scheduleId as string, 10)
         }
-     
+
         // using filter in query
         const attendanceRecords = await client.attendance.findMany({
-            where:filter,
-            include:{
-                schedule:true
+            where: filter,
+            include: {
+                schedule: true
             }
         })
-        return res.status(200).json({message:"Attendance fetched successfully",attendanceRecords})
+        return res.status(200).json({ message: "Attendance fetched successfully", attendanceRecords })
 
 
 
-    }catch(err){
+    } catch (err) {
         return res.status(404).json({ message: "Error occurred while :" + ((err) as Error).message })
     }
 })
 
 // update attendance
 // @ts-ignore
-app.post("/api/v1/updateAttendance",authenticatedUser,async(req,res)=>{
-   const userId = req.user?.id;
+app.post("/api/v1/updateAttendance", authenticatedUser, async (req, res) => {
+    const userId = req.user?.id;
 
-   try {
-    
-   if(!userId){
-    throw new Error("User ID is required");
-}
-const { attendanceId, date, status } = req.body;
-if(!attendanceId ||!date || typeof status!= "boolean"){
-    return res.status(404).json({ message: "All fields are required." });
-}
-const updateAttendance = await client.attendance.update({
-  where:{
-      id:attendanceId
-  },
-  data:{
-      ...(date &&{ date : new Date(date)}),
-      ...(status!==undefined && {status})
-  }
+    try {
 
-})
-if(!updateAttendance){
-    return res.status(404).json({ message: "Attendance not found." });
-}
+        if (!userId) {
+            throw new Error("User ID is required");
+        }
+        const { attendanceId, date, status } = req.body;
+        if (!attendanceId || !date || typeof status != "boolean") {
+            return res.status(404).json({ message: "All fields are required." });
+        }
+        const updateAttendance = await client.attendance.update({
+            where: {
+                id: attendanceId
+            },
+            data: {
+                ...(date && { date: new Date(date) }),
+                ...(status !== undefined && { status })
+            }
 
-return res.status(200).json({ message: "Attendance updated successfully", updatedAttendance: updateAttendance })
+        })
+        if (!updateAttendance) {
+            return res.status(404).json({ message: "Attendance not found." });
+        }
 
-   } catch (error) {
-    return res.status(404).json({ message:"an error occurred while updating" + error})
-   }
+        return res.status(200).json({ message: "Attendance updated successfully", updatedAttendance: updateAttendance })
+
+    } catch (error) {
+        return res.status(404).json({ message: "an error occurred while updating" + error })
+    }
 
 })
 
 // @ts-ignore
 
-app.post("/api/v1/attendanceSummary",authenticatedUser,async(req,res)=>{
+app.post("/api/v1/attendanceSummary", authenticatedUser, async (req, res) => {
     const userId = req.user?.id;
     try {
-        const attendance  = await client.attendance.findMany({
-            where:{
-                userId:userId
+        const attendance = await client.attendance.findMany({
+            where: {
+                userId: userId
             }
         })
-    
+
         const totalClass = attendance.length;
-        const attendedClass = attendance.filter(a=>a.status).length;
-        const attendedClassPercentage = (attendedClass/totalClass)*100;
+        const attendedClass = attendance.filter(a => a.status).length;
+        const attendedClassPercentage = (attendedClass / totalClass) * 100;
         res.status(200).json({
             message: "Attendance summary fetched successfully",
             totalClass,
@@ -389,9 +402,9 @@ app.post("/api/v1/attendanceSummary",authenticatedUser,async(req,res)=>{
             attendedClassPercentage: attendedClassPercentage.toFixed(2),
         });
     } catch (error) {
-        return res.status(404).json({message:{error:((error) as Error).message}})
+        return res.status(404).json({ message: { error: ((error) as Error).message } })
     }
-    
+
 })
 
 
